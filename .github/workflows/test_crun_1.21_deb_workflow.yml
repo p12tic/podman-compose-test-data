@@ -1,0 +1,50 @@
+name: Create crun-1.21 .deb files
+
+on: [push]
+
+jobs:
+  build:
+    name: Create crun-1.21 .deb files
+    runs-on: ubuntu-latest
+    container:
+      image: "debian:bookworm"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify script exists
+        run:
+          ls -la scripts/create_crun_1.21_deb_files.sh
+
+      - name: Run script to generate crun-1-21 .deb files
+        run:
+          bash ./scripts/create_crun_1.21_deb_files.sh
+
+      - name: Move crun-1-21 .deb files to deb_files directory
+        run: |
+          mkdir -p ./deb_files
+          mv *.deb ./deb_files/ || echo "No .deb files found in root directory."
+
+      - name: Verify files were moved
+        run: |
+          echo "Files in deb_files:"
+          ls -la ./deb_files/
+
+      - name: Calculate SHA-512 checksums
+        run: |
+          cd ./deb_files
+          if ls *.deb 1> /dev/null 2>&1; then
+            sha512sum *.deb > SHA512SUMS
+            echo "SHA512SUMS generated:"
+            cat SHA512SUMS
+          else
+            echo "No .deb files found to hash!"
+            exit 1
+          fi
+
+      - name: Upload crun-1-21 .deb files and SHA512SUMS as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-files-crun-1-21
+          path: ./deb_files/
+          if-no-files-found: error
