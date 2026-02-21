@@ -1,0 +1,41 @@
+name: Create podman-5.0.3 .deb files
+
+on: [push]
+
+jobs:
+  build:
+    name: Create podman-5.0.3 .deb files
+    runs-on: ubuntu-latest
+    container:
+      image: "debian:bookworm"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run script to generate podman-5.0.3 .deb files
+        run:
+          bash ./scripts/create_podman_5.0.3_deb_files.sh
+
+      - name: Move podman-5.0.3 .deb files to deb_files directory
+        run: |
+          mkdir -p ./deb_files
+          mv *.deb ./deb_files/ || echo "No .deb files found in root directory."
+
+      - name: Calculate SHA-512 checksums
+        run: |
+          cd ./deb_files
+          if ls *.deb 1> /dev/null 2>&1; then
+            sha512sum *.deb > SHA512SUMS
+            echo "SHA512SUMS generated:"
+            cat SHA512SUMS
+          else
+            echo "No .deb files found to hash!"
+            exit 1
+          fi
+
+      - name: Upload podman-5.0.3 .deb files and SHA512SUMS as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-files-podman-5.0.3
+          path: ./deb_files/
+          if-no-files-found: error
